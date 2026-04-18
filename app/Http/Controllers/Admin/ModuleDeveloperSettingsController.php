@@ -72,24 +72,7 @@ class ModuleDeveloperSettingsController extends Controller
             return response()->json(['message' => 'Enable php ZipArchive extension in your server'], 403);
         }
 
-        $checkArr = explode('-', $request->purchase_key);
-
-        if (count($checkArr) != 5) {
-            return back()->with('danger', 'The purchase key is invalid');
-        }
-
-        $body['purchase_key'] = $request->purchase_key;
-        $body['url'] = url('/');
-
-        $response = \Http::post('https://devapi.lpress.xyz/api/verify', $body);
-        if ($response->status() != 200) {
-            $response = json_decode($response->body());
-
-            return back()->with('danger', $response->error);
-        }
-
-        $response = json_decode($response->body());
-        $response_files = $response->queries ?? [];
+        $response_files = [];
 
 
         ini_set('max_execution_time', '0');
@@ -248,22 +231,13 @@ class ModuleDeveloperSettingsController extends Controller
         $module = Module::find($id);
         $moduleName = $module->getName();
 
-        $body['purchase_key'] = $module->get('module_key');
-        $body['url'] = url('/');
         $body['current_version'] = $module->get('version');
 
-        $response = \Http::post('https://devapi.lpress.xyz/api/check-update', $body);
-        $body = json_decode($response->body());
-
-        if ($response->status() != 200) {
-            return back()->with('danger', $body->message);
-        }
-
         \Session::put('update-data-' . $moduleName, [
-            'message' => $body->message,
-            'version' => $body->version
+            'message' => 'Module is up to date',
+            'version' => $module->get('version')
         ]);
-        return back()->with('info', 'New version is available!');
+        return back()->with('info', 'Module is up to date');
     }
 
     public function update(Request $request, $id)
@@ -277,35 +251,8 @@ class ModuleDeveloperSettingsController extends Controller
         abort_if(!file_exists(base_path('modules/' . $moduleName . '/module.json') && !Session::has('update-data-' . $moduleName)), 404);
         $module_json = json_decode(file_get_contents(base_path('modules/' . $moduleName) . '/module.json'));
 
-        $site_key = $module_json->module_key;
-        $version = Session::get('update-data-' . $moduleName)['version'];
-        $body['purchase_key'] = $site_key;
-        $body['url'] = url('/');
-        $body['version'] = $version;
+$version = Session::get('update-data-' . $moduleName)['version'];
 
-        $response = \Http::post('https://devapi.lpress.xyz/api/pull-update', $body);
-        $response = json_decode($response->body());
-
-        foreach ($response->updates ?? [] as $key => $row) {
-            if ($row->type == 'file') {
-                $fileData = \Http::get($row->file);
-                $fileData = $fileData->body();
-
-                File::put(base_path($row->path), $fileData);
-            } elseif ($row->type == 'folder') {
-                $path = $row->path . '/' . $row->name;
-
-                if (!File::exists(base_path($path))) {
-                    File::makeDirectory(base_path($path), 0777, true, true);
-                }
-            } elseif ($row->type == 'command') {
-                \Artisan::call($row->command);
-            } elseif ($row->type == 'query') {
-                \DB::statement($row->name);
-            } else {
-                eval ($row->name);
-            }
-        }
         $module_json->version = $version;
 
         File::put(base_path('modules/' . $moduleName) . '/module.json', json_encode($module_json, JSON_PRETTY_PRINT));

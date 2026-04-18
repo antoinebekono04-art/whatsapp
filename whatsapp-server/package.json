@@ -17,10 +17,7 @@
         "format:check": "prettier --check ."
     },
     "author": "AMCoders",
-    "bugs": {
-        "url": "https://codecanyon.net/user/amcoders"
-    },
-    "homepage": "https://codecanyon.net/item/whatsml-aibased-marketing-automation-tools-for-whatsapp-saas/59497566",
+    
     "engines": {
         "node": ">=18.16.0"
     },
