@@ -171,6 +171,7 @@ return [
        
         Spatie\Permission\PermissionServiceProvider::class,
         App\Providers\CookiesServiceProvider::class,
+        App\Providers\InstallerServiceProvider::class,
     ])->toArray(),
 
     /*
